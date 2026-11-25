@@ -110,10 +110,17 @@ def main() -> None:
         print(f"beat {role}: {len(beat)} chars")
     os.umask(0o022)
     os.makedirs("/output", exist_ok=True)
-    with open("/output/entry.txt", "w", encoding="utf-8", newline="") as f:
+    # Write to a temp file in /output first, then atomically rename: a
+    # run interrupted mid-write can never leave a partial entry.txt
+    # behind for the grader to collect.
+    tmp_path = "/output/.entry.txt.tmp"
+    with open(tmp_path, "w", encoding="utf-8", newline="") as f:
         f.write(line)
     # The grader collects the output as another user: leave it readable.
-    os.chmod("/output/entry.txt", 0o644)
+    os.chmod(tmp_path, 0o644)
+    os.replace(tmp_path, "/output/entry.txt")
+    if os.stat("/output/entry.txt").st_mode & 0o777 != 0o644:
+        raise ValueError("entry.txt must be mode 0644")
     # Read back what was written and prove it is the line, byte for byte:
     # the gate scores the file, not the string in memory.
     with open("/output/entry.txt", "rb") as f:
