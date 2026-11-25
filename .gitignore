@@ -1,0 +1,7 @@
+candidates.py
+tournament.py
+tournament.json
+__pycache__/
+kit.tar.gz
+*.tar.gz
+/output/
